@@ -5,19 +5,16 @@ import os
 Class to track column metadata information
 The metadata tracked is:
 
-name: the column header
-number: the column number
-qualitative values: a set containing all of the qualitative values
-quantitative_values_count: the number of quantitative values in the column
-datatype: datatype can be quantitative (all numerical), qualitative(strings), or both
+column_name: the column header
+column_number: the column number
 '''
 class Metadata:
     def __init__(self, column_name:str, column_number:int):
         self.name = column_name
         self.number = column_number
-        self.qualitative_values = {}
+        self.qualitative_values = {} #dictionary; key is qualitative value, value is count
         self.quantitative_values_count = 0
-        self.datatype = None
+        self.datatype = None #qualitative(numbers), quantitative(string), or both
 
     def __repr__(self):
         return f"<Metadata for column number {self.number}: {self.name}> datatype:{self.datatype}; qual_values_count:{len(self.qualitative_values.keys())}"
@@ -46,7 +43,7 @@ class BaseFile:
             for col in range(self._number_columns):
                 self.headers[first_row[col]] = Metadata(first_row[col], col)
             header_list = list(self.headers.keys())
-            next(reader)
+            #next(reader)
             #populate metadata for each column by analyzing each row in file
             for row in reader:
                 #inner loop to check column values in row
@@ -55,7 +52,7 @@ class BaseFile:
                     value = row[index]
                     meta = self.headers[header]
                     #determine if row value is quantitative (numerical) or quantitative, and update Metadata.datatype
-                    if not value.replace("-", "0", 1).replace(".", "0", 1).replace(",", "0").isdecimal():
+                    if not value.replace("-", "0", 1).replace(".", "0", 1).replace(",", "0").replace("$", "").isdecimal():
                         if value in meta.qualitative_values.keys():
                             meta.qualitative_values[value] += 1
                         else:
