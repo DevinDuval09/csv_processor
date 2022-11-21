@@ -9,7 +9,7 @@ Return a very simple, fake CSV file for testing
 def simple_csv():
     data = (
         "Manufacturer,Model,Color,Miles,MPG,Cost\n"
-        "Toyota,Camry,Gray,50000,25.4,$15000\n"
+        "Toyota,Camry,Gray,75000,25.4,$15000\n"
         "Volkswagon,GTI,White,75000,23.2,$20000\n"
         "Toyota,Corolla,Black,100000,28.2,$10000\n"
         )
@@ -46,6 +46,13 @@ def test_init(mocker, simple_csv):
     test_file = DataFile("../test_data/Data.csv")
 
     MANUFACTURER_VALUES = {"Volkswagon": 1, "Toyota": 2}
-    print(run_metadata_asserts(test_file.Manufacturer, 0, "Manufacturer", MANUFACTURER_VALUES, 2, "quantitative"))
-    assert(False)
+    MODEL_VALUES = {"Camry": 1, "GTI": 1, "Corolla": 1}
+    COLOR_VALUES = {"Gray": 1, "White": 1, "Black": 1}
+    EMPTY_VALUES = {}
+    assert(run_metadata_asserts(test_file.Manufacturer, 0, "Manufacturer", MANUFACTURER_VALUES, 0, "qualitative"))
+    assert(run_metadata_asserts(test_file.Model, 1, "Model", MODEL_VALUES, 0, "qualitative"))
+    assert(run_metadata_asserts(test_file.Color, 2, "Color", COLOR_VALUES, 0, "qualitative"))
+    assert(run_metadata_asserts(test_file.Miles, 3, "Miles", EMPTY_VALUES, 3, "quantitative"))
+    assert(run_metadata_asserts(test_file.MPG, 4, "MPG", EMPTY_VALUES, 3, "quantitative"))
+    assert(run_metadata_asserts(test_file.Cost, 5, "Cost", EMPTY_VALUES, 3, "quantitative"))
 
