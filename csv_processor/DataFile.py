@@ -24,6 +24,13 @@ class Metadata:
         report = report + f"\nValues: {self.qualitative_values}"
         return report
 
+    def __eq__(self, other):
+        return  self.name == other.name\
+            and self.number == other.number\
+            and self.qualitative_values == other.qualitative_values\
+            and self.quantitative_values_count == other.quantitative_values_count\
+            and self.datatype == other.datatype
+
 '''
 Class to track file information
 '''
@@ -72,6 +79,26 @@ class BaseFile:
         for header, value in self.headers.items():
             setattr(self, header.replace(" ", "_"), value)
 
+    '''
+    Return a metadata summary for given column. If no column is provided, returns the summary for each column.
+    '''
+    def show_metadata(self, *columns:str):
+        report = ""
+        if columns:
+            for column in columns:
+                if column in self.headers.keys():
+                    report = report + f"\n{self.headers[column].__str__()}"
+                    continue
+                else:
+                    report = report + f"\n{column} is not a valid column name."
+            return report
+        for column, meta in self.headers.items():
+            report = report + f"\n{meta.__str__()}"
+        return report
+
+    def __eq__(self, other):
+        return self.file == other.file and self.headers == other.headers
+
 '''
 Class to define a relationship between a value in 1 column and values from another column
 '''
@@ -99,6 +126,15 @@ class Relation:
 
     def __repr__(self):
         return self.__str__() + "\nRelated Values: " + ",".join(self.related_values)
+
+    def __eq__(self, other):
+        return  self.value == other.value\
+            and self.related_values == other.related_values\
+            and self.column_name == other.column_name\
+            and self.column_numebr == other.column_number\
+            and self.related_name == other.related_name\
+            and self.related_number == other.related_number\
+            and self.type == other.type
 
 
 
@@ -134,6 +170,9 @@ class DataFile(BaseFile):
     def __str__(self):
         return self.__repr__()
 
+    def __eq__(self, other):
+        return super().__eq__(other) and self.relationships == other.relationships
+
     '''
     Return relationship information between two columns
     '''
@@ -152,22 +191,6 @@ class DataFile(BaseFile):
         relation = Relation(value, left_col, right_col, self.file)
         self.relationships[value] = relation
         return relation
-    '''
-    Return a metadata summary for given column. If no column is provided, returns the summary for each column.
-    '''
-    def get_metadata(self, *columns:str):
-        report = ""
-        if columns:
-            for column in columns:
-                if column in self.headers.keys():
-                    report = report + f"\n{self.headers[column].__str__()}"
-                    continue
-                else:
-                    report = report + f"\n{column} is not a valid column name."
-            return report
-        for column, meta in self.headers.items():
-            report = report + f"\n{meta.__str__()}"
-        return report
 
 
 if __name__ == '__main__':
