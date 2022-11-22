@@ -56,3 +56,10 @@ def test_init(mocker, simple_csv):
     assert(run_metadata_asserts(test_file.MPG, 4, "MPG", EMPTY_VALUES, 3, "quantitative"))
     assert(run_metadata_asserts(test_file.Cost, 5, "Cost", EMPTY_VALUES, 3, "quantitative"))
 
+def test_create_file(mocker, simple_csv):
+    mocker.patch('builtins.open', simple_csv)
+    test_file = DataFile("../test_data/Data.csv")
+    alt_file = DataFile.create("../test_data/Data.csv")
+
+    assert(test_file == alt_file)
+
