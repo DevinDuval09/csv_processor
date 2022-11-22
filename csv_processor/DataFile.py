@@ -17,11 +17,17 @@ class Metadata:
         self.datatype = None #qualitative(numbers), quantitative(string), or both
 
     def __repr__(self):
-        return f"<Metadata for column number {self.number}: {self.name}> datatype:{self.datatype}; qual_values_count:{len(self.qualitative_values.keys())}"
+        rep = f"<Metadata for column number {self.number}: {self.name}> datatype:{self.datatype}"
+        if self.qualitative_values:
+            rep = rep + f"; qual_values_count:{len(self.qualitative_values.keys())}"
+        if self.quantitative_values_count:
+            rep = rep + f"; quant_values_count:{self.quantitative_values_count}"
+        return rep
 
     def __str__(self):
         report = self.__repr__()
-        report = report + f"\nValues: {self.qualitative_values}"
+        if self.qualitative_values:
+            report = report + f"\nQualitative Values ['Value': count]: {self.qualitative_values}"
         return report
 
     def __eq__(self, other):
