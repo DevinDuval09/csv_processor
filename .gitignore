@@ -3,4 +3,4 @@
 /sheet_env/
 summary.py
 *.pyc
-/LargeData.csv
+csv_processor/test_data/LargeData.csv
