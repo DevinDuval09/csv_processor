@@ -1,6 +1,9 @@
 import pytest
+import csv
 import mock
-from ..DataFile import Metadata, DataFile, Relation
+from unittest.mock import patch
+import os
+from ..DataFile import Metadata, DataFile, Relation, _convert_string_to_number
 
 MANUFACTURER_VALUES = {"Toyota": 2, "Volkswagon": 1, "Ferrari": 1}
 MODEL_VALUES = {"Camry": 1, "GTI": 1, "Corolla": 1, "Dino 246 GT": 1}
@@ -20,6 +23,42 @@ def simple_csv():
         'Volkswagon,GTI,White,"75,000","23.2","$20,000"\n'
         'Toyota,Corolla,Black,"100,000","28.2","$10,000"\n'
         'Ferrari,Dino 246 GT,Red,"252,346","18.2",N.A.\n'
+        )
+    return mock.mock_open(read_data=data)
+
+def create_simple_csv(file_name="../test_data/simple.csv"):
+    data = [
+        ['Manufacturer','Model','Color','Miles','MPG','Cost'],
+        ['Toyota','Camry','Gray','75,000','25.4','$15,000'],
+        ['Volkswagon','GTI','White','75,000','23.2','$20,000'],
+        ['Toyota','Corolla','Black','100,000','28.2','$10,000'],
+        ['Ferrari','Dino 246 GT','Red','252,346','18.2','N.A.'],
+        ]
+    if not os.path.isfile(file_name):
+        test_file = open(file_name, "w", newline="\n")
+        writer = csv.writer(test_file)
+        writer.writerows(data)
+        test_file.close()
+
+@pytest.fixture()
+def update_cost_csv():
+    data = (
+        'Manufacturer,Model,Color,Miles,MPG,Cost\n'
+        'Toyota,Camry,Gray,"75,000",25.4,"$15,000"\n'
+        'Volkswagon,GTI,White,"75,000",23.2,"$20,000"\n'
+        'Toyota,Corolla,Black,"100,000",28.2,"$10,000"\n'
+        'Ferrari,Dino 246 GT,Red,"252,346",18.2,-1\n'
+        )
+    return mock.mock_open(read_data=data)
+
+@pytest.fixture()
+def update_miles_csv():
+    data = (
+        'Manufacturer,Model,Color,Miles,MPG,Cost\n'
+        'Toyota,Camry,Gray,"76,000",25.4,"$15,000"\n'
+        'Volkswagon,GTI,White,"75,000",23.2,"$20,000"\n'
+        'Toyota,Corolla,Black,"100,000",28.2,"$10,000"\n'
+        'Ferrari,Dino 246 GT,Red,"252,346",18.2,N.A.\n'
         )
     return mock.mock_open(read_data=data)
 
@@ -93,7 +132,45 @@ def test_show_metadata_both_data(mocker, simple_csv):
 
     COST_META_REPORT = build_metadata_string(5, "Cost", "both", COST_QUAL_VALUES, COST_QUANT_VALUES)
     cost_report = test_file.show_metadata("Cost")
-    print(cost_report)
     assert(COST_META_REPORT == cost_report)
+
+def test_update_column_value_no_kwargs(update_cost_csv):
+    test_file = "../test_data/simple.csv"
+    create_simple_csv(test_file)
+    destination_file = "update_column_test.csv"
+    data_file = DataFile(test_file)
+    data_file.update_value("N.A.", -1,"Cost", new_file_name=destination_file)
+    test_file = open("../test_data/" + destination_file, "r")
+    with patch("builtins.open", update_cost_csv):
+        with open("../test_data/simple.csv", "r") as correct_file:
+            test_lines = test_file.readlines()
+            for test_line in test_lines:
+                correct_line = correct_file.readline()
+                #print(test_line)
+                #print(correct_line)
+                assert(test_line == correct_line)
+    test_file.close()
+    os.remove("../test_data/" + destination_file)
+    os.remove("../test_data/simple.csv")
+
+def test_update_column_value_kwargs(update_miles_csv):
+    test_file = "../test_data/simple.csv"
+    create_simple_csv(test_file)
+    destination_file = "update_column_test.csv"
+    data_file = DataFile(test_file)
+    data_file.update_value(75000, 76000,"Miles", new_file_name=destination_file, Model="Camry")
+    test_file = open("../test_data/" + destination_file, "r")
+    with patch("builtins.open", update_miles_csv):
+        with open("../test_data/simple.csv", "r") as correct_file:
+            test_lines = test_file.readlines()
+            for test_line in test_lines:
+                correct_line = correct_file.readline()
+                #print(test_line)
+                #print(correct_line)
+                assert(test_line.replace(",", "").replace("$", "").replace('"', "") == correct_line.replace(",", "").replace("$", "").replace('"', ""))
+    test_file.close()
+    os.remove("../test_data/" + destination_file)
+    os.remove("../test_data/simple.csv")
+
 
 
