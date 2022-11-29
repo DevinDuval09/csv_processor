@@ -1,6 +1,34 @@
 import csv
 import os
+import shutil
+import tempfile
+from pathlib import Path
 #from collections import OrderedDict
+'''
+    Remove chars , and $ from a string
+'''
+def _convert_to_decimal_string(value):
+    return value.replace(",", "").replace("$", "")
+'''
+    Return true if param value can be converted to a number
+'''
+def _is_decimal(value):
+    return _convert_to_decimal_string(value).replace("-", "0", 1).replace(".", "0", 1).isdecimal()
+'''
+    Convert param value to int or float, depending on the string
+'''
+def _convert_string_to_number(value):
+    if not _is_decimal(value):
+        raise TypeError(f"{value} cannot be converted to int or float.")
+    number_string = _convert_to_decimal_string(value)
+    if number_string.count(".") == 0:
+        return int(number_string)
+    elif number_string.count(".") == 1:
+        return float(number_string)
+    else:
+        raise TypeError(f"{value} cannot be converted to int or float.")
+    
+
 '''
 Class to track column metadata information
 The metadata tracked is:
@@ -65,7 +93,7 @@ class BaseFile:
                     value = row[index]
                     meta = self.headers[header]
                     #determine if row value is quantitative (numerical) or quantitative, and update Metadata.datatype
-                    if not value.replace("-", "0", 1).replace(".", "0", 1).replace(",", "0").replace("$", "").isdecimal():
+                    if not _is_decimal(value):
                         if value in meta.qualitative_values.keys():
                             meta.qualitative_values[value] += 1
                         else:
@@ -197,6 +225,64 @@ class DataFile(BaseFile):
         relation = Relation(value, left_col, right_col, self.file)
         self.relationships[value] = relation
         return relation
+
+    '''
+    Update a value based on either the column, or specific values from other columns.
+    Useful for replacing qualitative that should be a quantifiable number.
+    '''
+    def update_value(self, old_value, new_value, *columns, new_file_name=None, **column_value):
+        in_file = Path(self.file).resolve()
+        out_file = self.file
+        directory = os.path.dirname(self.file)
+        if new_file_name:
+            out_file = directory + "/" + new_file_name
+            out_file = Path(out_file).resolve()
+        for column in columns:
+            if column not in self.headers.keys():
+                print(f"{column} is not a valid column.")
+                return
+        for column in column_value.keys():
+            if column not in self.headers.keys():
+                print(f"{column} is not a valid column.")
+                return
+        if not os.path.isfile(out_file):
+            new_file = open(out_file,"w")
+            new_file.close()
+        with in_file.open("r") as real_file, tempfile.TemporaryFile(mode="w", dir=in_file.parent, delete=False, newline="\n") as temp_csv:
+            reader = csv.DictReader(real_file)
+            writer = csv.DictWriter(temp_csv, fieldnames = [header for header in self.headers.keys()])
+            writer.writeheader()
+            for row in reader:
+                alter_row = True
+                #check row column values against column_value dict
+                for column, val in column_value.items():
+                    #check actual value against column_value
+                    actual_value = row[column]
+                    if _is_decimal(actual_value):
+                        actual_value = _convert_to_decimal_string(actual_value)
+                    #print(f"Column: {column}\tCurrent Value: {actual_value}\tTest Value:{val}")
+                    if actual_value != val:
+                        alter_row = False
+                        break
+                if alter_row:
+                    #print(row)
+                    for column in columns:
+                        current_value = row[column]
+                        if _is_decimal(current_value):
+                            current_value = _convert_string_to_number(current_value)
+                        #print(f"current_value: {current_value}\told_value: {old_value}\tnew_value: {new_value}")
+                        if current_value == old_value:
+                            row[column] = new_value
+                writer.writerow(row)
+        #close tempfile before using shutil.copyfile
+        _ = shutil.copyfile(temp_csv.name, out_file)
+        os.remove(temp_csv.name)
+
+    '''
+    Reinitialize DataFile to a new file, keeping any relationships that have been run.
+    '''
+    def update_file(new_file):
+        pass
 
 
 if __name__ == '__main__':
