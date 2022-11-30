@@ -281,8 +281,52 @@ class DataFile(BaseFile):
     '''
     Reinitialize DataFile to a new file, keeping any relationships that have been run.
     '''
-    def update_file(new_file):
+    def update_file(self, new_file):
         pass
+
+    '''
+    Filter data based on criteria
+    '''
+    def filter(self, *args, save_file=None, **column_values):
+        for key in column_values.keys():
+            if key not in self.headers.keys():
+                raise KeyError(f"Column {key} is not valid.")
+        data = Path(self.file).resolve()
+        filtered = tempfile.TemporaryFile(mode="w", dir=data.parent, delete=False, newline="\n")
+        with data.open("r") as in_file:
+            reader = csv.DictReader(in_file)
+            writer = csv.DictWriter(filtered, self.headers.keys())
+            writer.writeheader()
+            for row in reader:
+                pass_test = True
+                for column, test_value in column_values.items():
+                    row_value = row[column]
+                    if _is_decimal(row_value):
+                        row_value = _convert_string_to_number(row_value)
+                    if test_value != row_value:
+                        pass_test = False
+                        break
+                if pass_test:
+                    writer.writerow(row)
+        filtered.close()
+        if save_file:
+            path = str(data.parent) + f"/{save_file}"
+            if not os.path.isfile(path):
+                f = open(path, "w")
+                f.close()
+            shutil.copyfile(filtered.name, Path(path).resolve)
+            return
+        with open(filtered.name, "r") as report:
+            reader = csv.reader(report)
+            length = shutil.get_terminal_size(fallback=(100, 100))[0] / self._number_columns
+            formatting = ""
+            for num in range(self._number_columns):
+                formatting = formatting + "{" + str(num) + ":" + str(length) + "}"
+            for row in reader:
+                print(formatting.format(*row))
+        filtered.close()
+        os.remove(filtered.name)
+
 
 
 if __name__ == '__main__':

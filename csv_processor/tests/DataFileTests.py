@@ -3,6 +3,8 @@ import csv
 import mock
 from unittest.mock import patch
 import os
+import io
+import sys
 from ..DataFile import Metadata, DataFile, Relation, _convert_string_to_number
 
 MANUFACTURER_VALUES = {"Toyota": 2, "Volkswagon": 1, "Ferrari": 1}
@@ -171,6 +173,29 @@ def test_update_column_value_kwargs(update_miles_csv):
     test_file.close()
     os.remove("../test_data/" + destination_file)
     os.remove("../test_data/simple.csv")
+
+def test_filter_no_save(simple_csv):
+    test_path = "../test_data/simple.csv"
+    create_simple_csv(test_path)
+    test_file = DataFile(test_path)
+
+    STD_OUT = sys.stdout
+    out = io.StringIO()
+    sys.stdout = out
+    test_file.filter(Manufacturer="Toyota")
+    test_report = "\n" + out.getvalue()
+    out.close()
+    sys.stdout = STD_OUT
+
+
+    correct_report = (
+"""
+Manufacturer    Model           Color           Miles           MPG             Cost            
+Toyota          Camry           Gray            75,000          25.4            $15,000         
+Toyota          Corolla         Black           100,000         28.2            $10,000         
+""")
+    os.remove(test_path)
+    assert(correct_report == test_report)
 
 
 
