@@ -285,7 +285,7 @@ class DataFile(BaseFile):
         pass
 
     '''
-    Filter data based on criteria
+    Filter data based on criteria passed to column_values. Currently only supports exact matches of qualitative data.
     '''
     def filter(self, *args, save_file=None, **column_values):
         for key in column_values.keys():
@@ -314,16 +314,16 @@ class DataFile(BaseFile):
             if not os.path.isfile(path):
                 f = open(path, "w")
                 f.close()
-            shutil.copyfile(filtered.name, Path(path).resolve)
-            return
-        with open(filtered.name, "r") as report:
-            reader = csv.reader(report)
-            length = shutil.get_terminal_size(fallback=(100, 100))[0] / self._number_columns
-            formatting = ""
-            for num in range(self._number_columns):
-                formatting = formatting + "{" + str(num) + ":" + str(length) + "}"
-            for row in reader:
-                print(formatting.format(*row))
+            shutil.copyfile(filtered.name, Path(path).resolve())
+        else:
+            with open(filtered.name, "r") as report:
+                reader = csv.reader(report)
+                length = shutil.get_terminal_size(fallback=(100, 100))[0] / self._number_columns
+                formatting = ""
+                for num in range(self._number_columns):
+                    formatting = formatting + "{" + str(num) + ":" + str(length) + "}"
+                for row in reader:
+                    print(formatting.format(*row))
         filtered.close()
         os.remove(filtered.name)
 
