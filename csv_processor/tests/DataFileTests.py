@@ -5,7 +5,7 @@ from unittest.mock import patch
 import os
 import io
 import sys
-from ..DataFile import Metadata, DataFile, Relation, _convert_string_to_number
+from ..DataFile import Metadata, DataFile, Relation, _convert_string_to_number, _convert_to_decimal_string
 
 MANUFACTURER_VALUES = {"Toyota": 2, "Volkswagon": 1, "Ferrari": 1}
 MODEL_VALUES = {"Camry": 1, "GTI": 1, "Corolla": 1, "Dino 246 GT": 1}
@@ -35,6 +35,20 @@ def create_simple_csv(file_name="../test_data/simple.csv"):
         ['Volkswagon','GTI','White','75,000','23.2','$20,000'],
         ['Toyota','Corolla','Black','100,000','28.2','$10,000'],
         ['Ferrari','Dino 246 GT','Red','252,346','18.2','N.A.'],
+        ]
+    if not os.path.isfile(file_name):
+        test_file = open(file_name, "w", newline="\n")
+        writer = csv.writer(test_file)
+        writer.writerows(data)
+        test_file.close()
+
+def create_edgecase_csv(file_name="../test_data/edge_case.csv"):
+    data = [
+        ['Movie','Box office','Budget', 'Year'],
+        ['Willow', '$137.6 million', '$35 million', '1988'],
+        ['Top Gun', '$357.3 million', '$15 million', '1986'],
+        ['Alien','$184.7 million','$11 million', '1979'],
+        ['L.A. Confidential','$126.2 million','$35 million','1997'],
         ]
     if not os.path.isfile(file_name):
         test_file = open(file_name, "w", newline="\n")
@@ -87,6 +101,16 @@ def run_metadata_asserts(metadata, number, name, correct_qual_values:dict, quant
     assert(metadata.datatype == datatype)
     assert(metadata.quantitative_values_count == quant_count)
     return True
+def test_convert_to_decimal_string_million():
+    input_values = ["$1 million", "10 million", "$1.3 million", "$10.523 million"]
+    correct_strings = ["1000000", "10000000", "1300000", "10523000"]
+
+    for index in range(len(input_values)):
+        input_val = input_values[index]
+        correct_val = correct_strings[index]
+        test_val = _convert_to_decimal_string(input_val)
+
+        assert(correct_val == test_val)
 
 '''
 Test init to:
@@ -190,17 +214,14 @@ def test_filter_no_save():
 
     correct_report = (
 """
-Manufacturer    Model           Color           Miles           MPG             Cost            
-Toyota          Camry           Gray            75,000          25.4            $15,000         
-Toyota          Corolla         Black           100,000         28.2            $10,000         
+Manufacturer     Model            Color            Miles            MPG              Cost             
+Toyota           Camry            Gray             75,000           25.4             $15,000          
+Toyota           Corolla          Black            100,000          28.2             $10,000          
 """)
     os.remove(test_path)
     assert(correct_report == test_report)
 
 def test_filter_save_to_file():
-    pass
-
-def test_filter_header_with_space():
     pass
 
 def test_filter_with_limit():
@@ -219,8 +240,29 @@ def test_filter_with_limit():
 
     correct_report = (
 """
-Manufacturer    Model           Color           Miles           MPG             Cost            
-Toyota          Camry           Gray            75,000          25.4            $15,000         
+Manufacturer     Model            Color            Miles            MPG              Cost             
+Toyota           Camry            Gray             75,000           25.4             $15,000          
+""")
+    os.remove(test_path)
+    assert(correct_report == test_report)
+
+def test_filter_header_with_space():
+    test_path = "../test_data/edge_case.csv"
+    create_edgecase_csv(test_path)
+    test_file = DataFile(test_path)
+
+    STD_OUT = sys.stdout
+    out = io.StringIO()
+    sys.stdout = out
+    test_file.filter(Box_office=137600000)
+    test_report = "\n" + out.getvalue()
+    out.close()
+    sys.stdout = STD_OUT
+
+    correct_report = (
+"""
+Movie                     Box office                Budget                    Year                      
+Willow                    $137.6 million            $35 million               1988                      
 """)
     os.remove(test_path)
     assert(correct_report == test_report)
