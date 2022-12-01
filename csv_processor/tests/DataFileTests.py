@@ -174,7 +174,7 @@ def test_update_column_value_kwargs(update_miles_csv):
     os.remove("../test_data/" + destination_file)
     os.remove("../test_data/simple.csv")
 
-def test_filter_no_save(simple_csv):
+def test_filter_no_save():
     test_path = "../test_data/simple.csv"
     create_simple_csv(test_path)
     test_file = DataFile(test_path)
@@ -193,6 +193,34 @@ def test_filter_no_save(simple_csv):
 Manufacturer    Model           Color           Miles           MPG             Cost            
 Toyota          Camry           Gray            75,000          25.4            $15,000         
 Toyota          Corolla         Black           100,000         28.2            $10,000         
+""")
+    os.remove(test_path)
+    assert(correct_report == test_report)
+
+def test_filter_save_to_file():
+    pass
+
+def test_filter_header_with_space():
+    pass
+
+def test_filter_with_limit():
+    test_path = "../test_data/simple.csv"
+    create_simple_csv(test_path)
+    test_file = DataFile(test_path)
+
+    STD_OUT = sys.stdout
+    out = io.StringIO()
+    sys.stdout = out
+    test_file.filter(line_limit=1, Manufacturer="Toyota")
+    test_report = "\n" + out.getvalue()
+    out.close()
+    sys.stdout = STD_OUT
+
+
+    correct_report = (
+"""
+Manufacturer    Model           Color           Miles           MPG             Cost            
+Toyota          Camry           Gray            75,000          25.4            $15,000         
 """)
     os.remove(test_path)
     assert(correct_report == test_report)

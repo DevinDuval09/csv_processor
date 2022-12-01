@@ -287,13 +287,14 @@ class DataFile(BaseFile):
     '''
     Filter data based on criteria passed to column_values. Currently only supports exact matches of qualitative data.
     '''
-    def filter(self, *args, save_file=None, **column_values):
+    def filter(self, *args, save_file=None, line_limit=None, **column_values):
         for key in column_values.keys():
             if key not in self.headers.keys():
                 raise KeyError(f"Column {key} is not valid.")
         data = Path(self.file).resolve()
         filtered = tempfile.TemporaryFile(mode="w", dir=data.parent, delete=False, newline="\n")
         with data.open("r") as in_file:
+            counter = 0
             reader = csv.DictReader(in_file)
             writer = csv.DictWriter(filtered, self.headers.keys())
             writer.writeheader()
@@ -308,6 +309,9 @@ class DataFile(BaseFile):
                         break
                 if pass_test:
                     writer.writerow(row)
+                counter += 1
+                if line_limit and counter == line_limit:
+                    break
         filtered.close()
         if save_file:
             path = str(data.parent) + f"/{save_file}"
@@ -326,8 +330,6 @@ class DataFile(BaseFile):
                     print(formatting.format(*row))
         filtered.close()
         os.remove(filtered.name)
-
-
 
 if __name__ == '__main__':
     file_path = os.path.dirname(__file__) + "/Data.csv"
