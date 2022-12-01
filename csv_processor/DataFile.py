@@ -8,7 +8,18 @@ from pathlib import Path
     Remove chars , and $ from a string
 '''
 def _convert_to_decimal_string(value):
-    return value.replace(",", "").replace("$", "")
+    washed = value.replace(",", "").replace("$", "")
+    if value.find("million") == -1:
+        return washed
+    washed = washed.replace(" ", "").replace("million", "")
+    decimal_index = washed.find(".")
+    zero_pads = 6
+    if decimal_index == -1:
+        return washed.replace(".", "", 1) + ("0" * zero_pads)
+    zero_pads -= len(washed) - decimal_index - 1
+    decimal_string = washed.replace(".", "") + ("0" * zero_pads)
+    return decimal_string
+
 '''
     Return true if param value can be converted to a number
 '''
@@ -82,7 +93,8 @@ class BaseFile:
             self._number_columns = len(first_row)
             #populate dictionary for headers
             for col in range(self._number_columns):
-                self.headers[first_row[col]] = Metadata(first_row[col], col)
+                header = first_row[col]#.replace(" ", "_")
+                self.headers[header] = Metadata(header, col)
             header_list = list(self.headers.keys())
             #next(reader)
             #populate metadata for each column by analyzing each row in file
@@ -229,6 +241,7 @@ class DataFile(BaseFile):
     '''
     Update a value based on either the column, or specific values from other columns.
     Useful for replacing qualitative that should be a quantifiable number.
+    TODO: fix column_value inputs so that keys have _ replaced with " "
     '''
     def update_value(self, old_value, new_value, *columns, new_file_name=None, **column_value):
         in_file = Path(self.file).resolve()
@@ -241,7 +254,8 @@ class DataFile(BaseFile):
             if column not in self.headers.keys():
                 print(f"{column} is not a valid column.")
                 return
-        for column in column_value.keys():
+        for key in column_value.keys():
+            column = key.replace("_", " ")
             if column not in self.headers.keys():
                 print(f"{column} is not a valid column.")
                 return
@@ -255,7 +269,8 @@ class DataFile(BaseFile):
             for row in reader:
                 alter_row = True
                 #check row column values against column_value dict
-                for column, val in column_value.items():
+                for key, val in column_value.items():
+                    column = key.replace("_", " ")
                     #check actual value against column_value
                     actual_value = row[column]
                     if _is_decimal(actual_value):
@@ -289,7 +304,7 @@ class DataFile(BaseFile):
     '''
     def filter(self, *args, save_file=None, line_limit=None, **column_values):
         for key in column_values.keys():
-            if key not in self.headers.keys():
+            if key.replace("_", " ") not in self.headers.keys():
                 raise KeyError(f"Column {key} is not valid.")
         data = Path(self.file).resolve()
         filtered = tempfile.TemporaryFile(mode="w", dir=data.parent, delete=False, newline="\n")
@@ -300,7 +315,8 @@ class DataFile(BaseFile):
             writer.writeheader()
             for row in reader:
                 pass_test = True
-                for column, test_value in column_values.items():
+                for key, test_value in column_values.items():
+                    column = key.replace("_", " ")
                     row_value = row[column]
                     if _is_decimal(row_value):
                         row_value = _convert_string_to_number(row_value)
@@ -322,7 +338,7 @@ class DataFile(BaseFile):
         else:
             with open(filtered.name, "r") as report:
                 reader = csv.reader(report)
-                length = shutil.get_terminal_size(fallback=(100, 100))[0] / self._number_columns
+                length = int(shutil.get_terminal_size(fallback=(100, 100))[0] / self._number_columns + 1)
                 formatting = ""
                 for num in range(self._number_columns):
                     formatting = formatting + "{" + str(num) + ":" + str(length) + "}"
